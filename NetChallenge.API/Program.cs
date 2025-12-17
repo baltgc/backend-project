@@ -59,11 +59,16 @@ builder.Services.AddScoped<JsonPlaceholderClient>(sp =>
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IAuthService>(sp =>
 {
+    var validUsername = builder.Configuration["Authentication:ValidUsername"] ?? "admin";
+    var validPassword = builder.Configuration["Authentication:ValidPassword"] ?? "admin123";
+    
     return new AuthService(
         jwtSettings.SecretKey,
         jwtSettings.Issuer,
         jwtSettings.Audience,
-        jwtSettings.ExpirationMinutes
+        jwtSettings.ExpirationMinutes,
+        validUsername,
+        validPassword
     );
 });
 

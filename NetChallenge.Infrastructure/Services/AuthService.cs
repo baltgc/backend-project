@@ -13,20 +13,29 @@ public class AuthService : IAuthService
     private readonly string _issuer;
     private readonly string _audience;
     private readonly int _expirationMinutes;
+    private readonly string _validUsername;
+    private readonly string _validPassword;
 
-    public AuthService(string secretKey, string issuer, string audience, int expirationMinutes)
+    public AuthService(string secretKey, string issuer, string audience, int expirationMinutes, string validUsername, string validPassword)
     {
         _secretKey = secretKey;
         _issuer = issuer;
         _audience = audience;
         _expirationMinutes = expirationMinutes;
+        _validUsername = validUsername;
+        _validPassword = validPassword;
     }
 
     public Task<LoginResponse?> AuthenticateAsync(string username, string password)
     {
-        // Simple authentication - in production, validate against database
-        // For this challenge, accept any username/password combination
+        // Validate credentials against hardcoded user
         if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password))
+        {
+            return Task.FromResult<LoginResponse?>(null);
+        }
+
+        // Only accept the configured valid user
+        if (username != _validUsername || password != _validPassword)
         {
             return Task.FromResult<LoginResponse?>(null);
         }

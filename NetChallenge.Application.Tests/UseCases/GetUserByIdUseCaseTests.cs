@@ -57,5 +57,82 @@ public class GetUserByIdUseCaseTests
         Assert.Null(result);
         mockUserService.Verify(s => s.GetUserByIdAsync(userId), Times.Once);
     }
+
+    [Fact]
+    public async Task ExecuteAsync_ShouldHandleNegativeId()
+    {
+        // Arrange
+        var mockUserService = new Mock<IUserService>();
+        var userId = -1;
+
+        mockUserService.Setup(s => s.GetUserByIdAsync(userId))
+            .ReturnsAsync((UserDto?)null);
+
+        var useCase = new GetUserByIdUseCase(mockUserService.Object);
+
+        // Act
+        var result = await useCase.ExecuteAsync(userId);
+
+        // Assert
+        Assert.Null(result);
+        mockUserService.Verify(s => s.GetUserByIdAsync(userId), Times.Once);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_ShouldHandleZeroId()
+    {
+        // Arrange
+        var mockUserService = new Mock<IUserService>();
+        var userId = 0;
+
+        mockUserService.Setup(s => s.GetUserByIdAsync(userId))
+            .ReturnsAsync((UserDto?)null);
+
+        var useCase = new GetUserByIdUseCase(mockUserService.Object);
+
+        // Act
+        var result = await useCase.ExecuteAsync(userId);
+
+        // Assert
+        Assert.Null(result);
+        mockUserService.Verify(s => s.GetUserByIdAsync(userId), Times.Once);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_ShouldHandleVeryLargeId()
+    {
+        // Arrange
+        var mockUserService = new Mock<IUserService>();
+        var userId = int.MaxValue;
+
+        mockUserService.Setup(s => s.GetUserByIdAsync(userId))
+            .ReturnsAsync((UserDto?)null);
+
+        var useCase = new GetUserByIdUseCase(mockUserService.Object);
+
+        // Act
+        var result = await useCase.ExecuteAsync(userId);
+
+        // Assert
+        Assert.Null(result);
+        mockUserService.Verify(s => s.GetUserByIdAsync(userId), Times.Once);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_ShouldPropagateException_WhenServiceThrows()
+    {
+        // Arrange
+        var mockUserService = new Mock<IUserService>();
+        var userId = 1;
+
+        mockUserService.Setup(s => s.GetUserByIdAsync(userId))
+            .ThrowsAsync(new Exception("Service error"));
+
+        var useCase = new GetUserByIdUseCase(mockUserService.Object);
+
+        // Act & Assert
+        await Assert.ThrowsAsync<Exception>(() => useCase.ExecuteAsync(userId));
+        mockUserService.Verify(s => s.GetUserByIdAsync(userId), Times.Once);
+    }
 }
 
