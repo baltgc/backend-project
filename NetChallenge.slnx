@@ -1,0 +1,7 @@
+<Solution>
+  <Project Path="NetChallenge.API/NetChallenge.API.csproj" />
+  <Project Path="NetChallenge.Application.Tests/NetChallenge.Application.Tests.csproj" />
+  <Project Path="NetChallenge.Application/NetChallenge.Application.csproj" />
+  <Project Path="NetChallenge.Domain/NetChallenge.Domain.csproj" />
+  <Project Path="NetChallenge.Infrastructure/NetChallenge.Infrastructure.csproj" />
+</Solution>

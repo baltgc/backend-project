@@ -1,0 +1,35 @@
+# Build outputs
+**/bin/
+**/obj/
+**/.vs/
+**/.vscode/
+
+# Test results
+**/TestResults/
+**/coverage/
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Docker
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# Documentation
+*.md
+CHALLENGE.md
+PROJECT_STRUCTURE.md
+
+# IDE
+.idea/
+*.user
+*.suo
+*.sln.docstates
+
+# Misc
+*.http
+*.log
+
