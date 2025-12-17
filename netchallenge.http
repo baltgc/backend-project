@@ -1,6 +1,36 @@
-@netchallenge_HostAddress = http://localhost:5108
+@baseUrl = http://localhost:5108
+@token = {{login.response.body.token}}
 
-GET {{netchallenge_HostAddress}}/weatherforecast/
-Accept: application/json
+### Login - Get JWT Token
+# @name login
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
 
-###
+{
+    "username": "admin",
+    "password": "admin123"
+}
+
+### Login with invalid credentials (should return 401)
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+    "username": "invalid",
+    "password": "invalid"
+}
+
+### Get All Users (Protected - requires token)
+GET {{baseUrl}}/api/users
+Authorization: Bearer {{token}}
+
+### Get User by ID (Protected - requires token)
+GET {{baseUrl}}/api/users/1
+Authorization: Bearer {{token}}
+
+### Get User by ID - Not Found (Protected)
+GET {{baseUrl}}/api/users/999
+Authorization: Bearer {{token}}
+
+### Get All Users without token (should return 401)
+GET {{baseUrl}}/api/users
