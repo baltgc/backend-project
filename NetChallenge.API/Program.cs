@@ -1,3 +1,7 @@
+using System.Text;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using NetChallenge.API.Configuration;
 using NetChallenge.Application.Interfaces;
 using NetChallenge.Application.UseCases;
 using NetChallenge.Infrastructure.External;
@@ -8,6 +12,35 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
+
+// Configure JWT Settings
+var jwtSettings = new JwtSettings();
+builder.Configuration.GetSection("Jwt").Bind(jwtSettings);
+builder.Services.AddSingleton(jwtSettings);
+
+// Configure JWT Authentication
+var key = Encoding.UTF8.GetBytes(jwtSettings.SecretKey);
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+.AddJwtBearer(options =>
+{
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuerSigningKey = true,
+        IssuerSigningKey = new SymmetricSecurityKey(key),
+        ValidateIssuer = true,
+        ValidIssuer = jwtSettings.Issuer,
+        ValidateAudience = true,
+        ValidAudience = jwtSettings.Audience,
+        ValidateLifetime = true,
+        ClockSkew = TimeSpan.Zero
+    };
+});
+
+// Configure Swagger
 builder.Services.AddSwaggerGen();
 
 // Configure HttpClient and JsonPlaceholderClient
@@ -24,10 +57,20 @@ builder.Services.AddScoped<JsonPlaceholderClient>(sp =>
 
 // Register Application Services
 builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<IAuthService>(sp =>
+{
+    return new AuthService(
+        jwtSettings.SecretKey,
+        jwtSettings.Issuer,
+        jwtSettings.Audience,
+        jwtSettings.ExpirationMinutes
+    );
+});
 
 // Register Use Cases
 builder.Services.AddScoped<GetUsersUseCase>();
 builder.Services.AddScoped<GetUserByIdUseCase>();
+builder.Services.AddScoped<LoginUseCase>();
 
 var app = builder.Build();
 
@@ -46,6 +89,7 @@ else
     app.UseHttpsRedirection();
 }
 
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();

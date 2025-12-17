@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using NetChallenge.Application.DTOs;
 using NetChallenge.Application.UseCases;
@@ -6,6 +7,7 @@ namespace NetChallenge.API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize]
 public class UsersController : ControllerBase
 {
     private readonly GetUsersUseCase _getUsersUseCase;
