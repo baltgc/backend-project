@@ -1,0 +1,31 @@
+meta {
+  name: Get User By Id
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/api/users/1
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+vars:pre-request {
+  baseUrl: http://localhost:8080
+}
+
+docs {
+  # Get User By Id
+  
+  Obtiene un usuario específico por su ID.
+  
+  ## Parámetros
+  - `id`: ID del usuario (1-10 disponibles en JSONPlaceholder)
+  
+  ## Autenticación
+  Requiere token JWT en el header Authorization.
+}
