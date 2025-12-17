@@ -1,11 +1,11 @@
-using NetChallenge.Application.DTOs;
+using NetChallenge.Domain.Entities;
 
 namespace NetChallenge.Application.Interfaces;
 
 public interface IUserService
 {
-    Task<IEnumerable<UserDto>> GetUsersAsync();
+    Task<IEnumerable<User>> GetUsersAsync();
 
-    Task<UserDto?> GetUserByIdAsync(int id);
+    Task<User?> GetUserByIdAsync(int id);
 }
 

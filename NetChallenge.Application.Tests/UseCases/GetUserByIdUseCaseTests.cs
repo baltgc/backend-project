@@ -2,6 +2,7 @@ using Moq;
 using NetChallenge.Application.DTOs;
 using NetChallenge.Application.Interfaces;
 using NetChallenge.Application.UseCases;
+using NetChallenge.Domain.Entities;
 
 namespace NetChallenge.Application.Tests.UseCases;
 
@@ -13,7 +14,7 @@ public class GetUserByIdUseCaseTests
         // Arrange
         var mockUserService = new Mock<IUserService>();
         var userId = 1;
-        var expectedUser = new UserDto
+        var expectedUser = new User
         {
             Id = userId,
             Name = "John Doe",
@@ -46,7 +47,7 @@ public class GetUserByIdUseCaseTests
         var userId = 999;
 
         mockUserService.Setup(s => s.GetUserByIdAsync(userId))
-            .ReturnsAsync((UserDto?)null);
+            .ReturnsAsync((User?)null);
 
         var useCase = new GetUserByIdUseCase(mockUserService.Object);
 
@@ -66,7 +67,7 @@ public class GetUserByIdUseCaseTests
         var userId = -1;
 
         mockUserService.Setup(s => s.GetUserByIdAsync(userId))
-            .ReturnsAsync((UserDto?)null);
+            .ReturnsAsync((User?)null);
 
         var useCase = new GetUserByIdUseCase(mockUserService.Object);
 
@@ -86,7 +87,7 @@ public class GetUserByIdUseCaseTests
         var userId = 0;
 
         mockUserService.Setup(s => s.GetUserByIdAsync(userId))
-            .ReturnsAsync((UserDto?)null);
+            .ReturnsAsync((User?)null);
 
         var useCase = new GetUserByIdUseCase(mockUserService.Object);
 
@@ -106,7 +107,7 @@ public class GetUserByIdUseCaseTests
         var userId = int.MaxValue;
 
         mockUserService.Setup(s => s.GetUserByIdAsync(userId))
-            .ReturnsAsync((UserDto?)null);
+            .ReturnsAsync((User?)null);
 
         var useCase = new GetUserByIdUseCase(mockUserService.Object);
 

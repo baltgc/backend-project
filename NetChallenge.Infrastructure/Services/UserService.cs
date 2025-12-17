@@ -1,5 +1,5 @@
-using NetChallenge.Application.DTOs;
 using NetChallenge.Application.Interfaces;
+using NetChallenge.Domain.Entities;
 using NetChallenge.Infrastructure.External;
 
 namespace NetChallenge.Infrastructure.Services;
@@ -13,16 +13,16 @@ public class UserService : IUserService
         _jsonPlaceholderClient = jsonPlaceholderClient;
     }
 
-    public async Task<IEnumerable<UserDto>> GetUsersAsync()
+    public async Task<IEnumerable<User>> GetUsersAsync()
     {
         var users = await _jsonPlaceholderClient.GetUsersAsync();
 
         if (users == null)
         {
-            return Enumerable.Empty<UserDto>();
+            return Enumerable.Empty<User>();
         }
 
-        return users.Select(u => new UserDto
+        return users.Select(u => new User
         {
             Id = u.Id,
             Name = u.Name,
@@ -33,7 +33,7 @@ public class UserService : IUserService
         });
     }
 
-    public async Task<UserDto?> GetUserByIdAsync(int id)
+    public async Task<User?> GetUserByIdAsync(int id)
     {
         var user = await _jsonPlaceholderClient.GetUserByIdAsync(id);
 
@@ -42,7 +42,7 @@ public class UserService : IUserService
             return null;
         }
 
-        return new UserDto
+        return new User
         {
             Id = user.Id,
             Name = user.Name,

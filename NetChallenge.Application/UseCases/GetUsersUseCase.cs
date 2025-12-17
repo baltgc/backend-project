@@ -1,5 +1,6 @@
 using NetChallenge.Application.DTOs;
 using NetChallenge.Application.Interfaces;
+using NetChallenge.Domain.Entities;
 
 namespace NetChallenge.Application.UseCases;
 
@@ -14,7 +15,17 @@ public class GetUsersUseCase
 
     public async Task<IEnumerable<UserDto>> ExecuteAsync()
     {
-        return await _userService.GetUsersAsync();
+        var users = await _userService.GetUsersAsync();
+
+        return users.Select(u => new UserDto
+        {
+            Id = u.Id,
+            Name = u.Name,
+            Username = u.Username,
+            Email = u.Email,
+            Phone = u.Phone,
+            Website = u.Website
+        });
     }
 }
 

@@ -1,7 +1,7 @@
 using Moq;
-using NetChallenge.Application.DTOs;
 using NetChallenge.Application.Interfaces;
 using NetChallenge.Application.UseCases;
+using NetChallenge.Domain.Entities;
 
 namespace NetChallenge.Application.Tests.UseCases;
 
@@ -12,10 +12,10 @@ public class GetUsersUseCaseTests
     {
         // Arrange
         var mockUserService = new Mock<IUserService>();
-        var expectedUsers = new List<UserDto>
+        var expectedUsers = new List<User>
         {
-            new UserDto { Id = 1, Name = "John Doe", Username = "johndoe", Email = "john@example.com" },
-            new UserDto { Id = 2, Name = "Jane Smith", Username = "janesmith", Email = "jane@example.com" }
+            new User { Id = 1, Name = "John Doe", Username = "johndoe", Email = "john@example.com" },
+            new User { Id = 2, Name = "Jane Smith", Username = "janesmith", Email = "jane@example.com" }
         };
 
         mockUserService.Setup(s => s.GetUsersAsync())
@@ -28,8 +28,9 @@ public class GetUsersUseCaseTests
 
         // Assert
         Assert.NotNull(result);
-        Assert.Equal(2, result.Count());
-        Assert.Equal("John Doe", result.First().Name);
+        var resultList = result.ToList();
+        Assert.Equal(2, resultList.Count);
+        Assert.Equal("John Doe", resultList.First().Name);
         mockUserService.Verify(s => s.GetUsersAsync(), Times.Once);
     }
 
@@ -39,7 +40,7 @@ public class GetUsersUseCaseTests
         // Arrange
         var mockUserService = new Mock<IUserService>();
         mockUserService.Setup(s => s.GetUsersAsync())
-            .ReturnsAsync(Enumerable.Empty<UserDto>());
+            .ReturnsAsync(Enumerable.Empty<User>());
 
         var useCase = new GetUsersUseCase(mockUserService.Object);
 
@@ -58,7 +59,7 @@ public class GetUsersUseCaseTests
         // Arrange
         var mockUserService = new Mock<IUserService>();
         var largeUserList = Enumerable.Range(1, 1000)
-            .Select(i => new UserDto
+            .Select(i => new User
             {
                 Id = i,
                 Name = $"User {i}",
@@ -101,12 +102,12 @@ public class GetUsersUseCaseTests
     {
         // Arrange
         var mockUserService = new Mock<IUserService>();
-        var usersWithNulls = new List<UserDto?>
+        var usersWithNulls = new List<User?>
         {
-            new UserDto { Id = 1, Name = "User 1" },
+            new User { Id = 1, Name = "User 1" },
             null,
-            new UserDto { Id = 3, Name = "User 3" }
-        }.Where(u => u != null).Cast<UserDto>();
+            new User { Id = 3, Name = "User 3" }
+        }.Where(u => u != null).Cast<User>();
 
         mockUserService.Setup(s => s.GetUsersAsync())
             .ReturnsAsync(usersWithNulls);
