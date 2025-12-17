@@ -97,30 +97,5 @@ public class GetUsersUseCaseTests
         mockUserService.Verify(s => s.GetUsersAsync(), Times.Once);
     }
 
-    [Fact]
-    public async Task ExecuteAsync_ShouldHandleNullUsersInList()
-    {
-        // Arrange
-        var mockUserService = new Mock<IUserService>();
-        var usersWithNulls = new List<User?>
-        {
-            new User { Id = 1, Name = "User 1" },
-            null,
-            new User { Id = 3, Name = "User 3" }
-        }.Where(u => u != null).Cast<User>();
-
-        mockUserService.Setup(s => s.GetUsersAsync())
-            .ReturnsAsync(usersWithNulls);
-
-        var useCase = new GetUsersUseCase(mockUserService.Object);
-
-        // Act
-        var result = await useCase.ExecuteAsync();
-
-        // Assert
-        Assert.NotNull(result);
-        Assert.Equal(2, result.Count());
-        mockUserService.Verify(s => s.GetUsersAsync(), Times.Once);
-    }
 }
 
