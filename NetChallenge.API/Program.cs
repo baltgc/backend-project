@@ -1,9 +1,33 @@
+using NetChallenge.Application.Interfaces;
+using NetChallenge.Application.UseCases;
+using NetChallenge.Infrastructure.External;
+using NetChallenge.Infrastructure.Services;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
+// Configure HttpClient and JsonPlaceholderClient
+var jsonPlaceholderBaseUrl = builder.Configuration["JsonPlaceholder:BaseUrl"] 
+    ?? "https://jsonplaceholder.typicode.com";
+
+builder.Services.AddHttpClient();
+builder.Services.AddScoped<JsonPlaceholderClient>(sp =>
+{
+    var httpClientFactory = sp.GetRequiredService<IHttpClientFactory>();
+    var httpClient = httpClientFactory.CreateClient();
+    return new JsonPlaceholderClient(httpClient, jsonPlaceholderBaseUrl);
+});
+
+// Register Application Services
+builder.Services.AddScoped<IUserService, UserService>();
+
+// Register Use Cases
+builder.Services.AddScoped<GetUsersUseCase>();
+builder.Services.AddScoped<GetUserByIdUseCase>();
 
 var app = builder.Build();
 
@@ -24,28 +48,6 @@ else
 
 app.UseAuthorization();
 
-var summaries = new[]
-{
-    "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-};
-
-app.MapGet("/weatherforecast", () =>
-{
-    var forecast =  Enumerable.Range(1, 5).Select(index =>
-        new WeatherForecast
-        (
-            DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-            Random.Shared.Next(-20, 55),
-            summaries[Random.Shared.Next(summaries.Length)]
-        ))
-        .ToArray();
-    return forecast;
-})
-.WithName("GetWeatherForecast");
+app.MapControllers();
 
 app.Run();
-
-record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
-{
-    public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
-}
