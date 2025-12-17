@@ -260,6 +260,13 @@ For production, override settings using environment variables:
 | `Authentication__ValidUsername` | Valid username for login |
 | `Authentication__ValidPassword` | Valid password for login |
 
+## Middleware
+
+The API includes a **Global Exception Handler** middleware that:
+- Catches all unhandled exceptions
+- Logs errors using the built-in `ILogger`
+- Returns a clean JSON response instead of exposing stack traces
+
 ## Architecture & SOLID Principles
 
 ### Clean Architecture Layers

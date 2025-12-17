@@ -2,6 +2,7 @@ using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using NetChallenge.API.Configuration;
+using NetChallenge.API.Middleware;
 using NetChallenge.Application.Interfaces;
 using NetChallenge.Application.UseCases;
 using NetChallenge.Infrastructure.External;
@@ -112,6 +113,9 @@ builder.Services.AddScoped<GetUserByIdUseCase>();
 builder.Services.AddScoped<LoginUseCase>();
 
 var app = builder.Build();
+
+// Global exception handler (first in pipeline)
+app.UseMiddleware<ExceptionHandlerMiddleware>();
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
