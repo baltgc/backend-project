@@ -27,7 +27,7 @@ public class JsonPlaceholderClient
 
     private async Task<T?> GetAsync<T>(string url)
     {
-        var response = await _httpClient.GetAsync(url);
+        using var response = await _httpClient.GetAsync(url);
 
         if (!response.IsSuccessStatusCode)
         {
