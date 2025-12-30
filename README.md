@@ -18,7 +18,7 @@ curl http://localhost:8080/api/users \
   -H "Authorization: Bearer <your-token>"
 ```
 
-📖 Swagger UI: http://localhost:8080
+Swagger UI: http://localhost:8080
 
 ## Description
 
@@ -198,7 +198,7 @@ Authorization: Bearer <your-token>
 ## Using Swagger UI for Authentication
 
 1. Open Swagger UI at the root URL
-2. Click the "Authorize" button (🔓)
+2. Click the "Authorize" button
 3. Enter your JWT token (without "Bearer" prefix)
 4. Click "Authorize"
 5. Now all protected endpoints can be tested
