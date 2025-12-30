@@ -21,11 +21,10 @@ public class GetUserByIdUseCaseTests
             Username = "johndoe",
             Email = "john@example.com",
             Phone = "123-456-7890",
-            Website = "johndoe.com"
+            Website = "johndoe.com",
         };
 
-        mockUserService.Setup(s => s.GetUserByIdAsync(userId))
-            .ReturnsAsync(expectedUser);
+        mockUserService.Setup(s => s.GetUserByIdAsync(userId)).ReturnsAsync(expectedUser);
 
         var useCase = new GetUserByIdUseCase(mockUserService.Object);
 
@@ -46,8 +45,7 @@ public class GetUserByIdUseCaseTests
         var mockUserService = new Mock<IUserService>();
         var userId = 999;
 
-        mockUserService.Setup(s => s.GetUserByIdAsync(userId))
-            .ReturnsAsync((User?)null);
+        mockUserService.Setup(s => s.GetUserByIdAsync(userId)).ReturnsAsync((User?)null);
 
         var useCase = new GetUserByIdUseCase(mockUserService.Object);
 
@@ -66,8 +64,7 @@ public class GetUserByIdUseCaseTests
         var mockUserService = new Mock<IUserService>();
         var userId = -1;
 
-        mockUserService.Setup(s => s.GetUserByIdAsync(userId))
-            .ReturnsAsync((User?)null);
+        mockUserService.Setup(s => s.GetUserByIdAsync(userId)).ReturnsAsync((User?)null);
 
         var useCase = new GetUserByIdUseCase(mockUserService.Object);
 
@@ -86,8 +83,7 @@ public class GetUserByIdUseCaseTests
         var mockUserService = new Mock<IUserService>();
         var userId = 0;
 
-        mockUserService.Setup(s => s.GetUserByIdAsync(userId))
-            .ReturnsAsync((User?)null);
+        mockUserService.Setup(s => s.GetUserByIdAsync(userId)).ReturnsAsync((User?)null);
 
         var useCase = new GetUserByIdUseCase(mockUserService.Object);
 
@@ -106,8 +102,7 @@ public class GetUserByIdUseCaseTests
         var mockUserService = new Mock<IUserService>();
         var userId = int.MaxValue;
 
-        mockUserService.Setup(s => s.GetUserByIdAsync(userId))
-            .ReturnsAsync((User?)null);
+        mockUserService.Setup(s => s.GetUserByIdAsync(userId)).ReturnsAsync((User?)null);
 
         var useCase = new GetUserByIdUseCase(mockUserService.Object);
 
@@ -126,7 +121,8 @@ public class GetUserByIdUseCaseTests
         var mockUserService = new Mock<IUserService>();
         var userId = 1;
 
-        mockUserService.Setup(s => s.GetUserByIdAsync(userId))
+        mockUserService
+            .Setup(s => s.GetUserByIdAsync(userId))
             .ThrowsAsync(new Exception("Service error"));
 
         var useCase = new GetUserByIdUseCase(mockUserService.Object);
@@ -136,4 +132,3 @@ public class GetUserByIdUseCaseTests
         mockUserService.Verify(s => s.GetUserByIdAsync(userId), Times.Once);
     }
 }
-

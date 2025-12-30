@@ -16,7 +16,14 @@ public class AuthService : IAuthService
     private readonly string _validUsername;
     private readonly string _validPassword;
 
-    public AuthService(string secretKey, string issuer, string audience, int expirationMinutes, string validUsername, string validPassword)
+    public AuthService(
+        string secretKey,
+        string issuer,
+        string audience,
+        int expirationMinutes,
+        string validUsername,
+        string validPassword
+    )
     {
         _secretKey = secretKey;
         _issuer = issuer;
@@ -43,11 +50,9 @@ public class AuthService : IAuthService
         var token = GenerateToken(username);
         var expiresAt = DateTime.UtcNow.AddMinutes(_expirationMinutes);
 
-        return Task.FromResult<LoginResponse?>(new LoginResponse
-        {
-            Token = token,
-            ExpiresAt = expiresAt
-        });
+        return Task.FromResult<LoginResponse?>(
+            new LoginResponse { Token = token, ExpiresAt = expiresAt }
+        );
     }
 
     public string GenerateToken(string username)
@@ -59,7 +64,7 @@ public class AuthService : IAuthService
         {
             new Claim(ClaimTypes.Name, username),
             new Claim(JwtRegisteredClaimNames.Sub, username),
-            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
+            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
         };
 
         var token = new JwtSecurityToken(
@@ -73,4 +78,3 @@ public class AuthService : IAuthService
         return new JwtSecurityTokenHandler().WriteToken(token);
     }
 }
-

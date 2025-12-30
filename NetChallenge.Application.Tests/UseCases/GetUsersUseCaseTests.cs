@@ -14,12 +14,23 @@ public class GetUsersUseCaseTests
         var mockUserService = new Mock<IUserService>();
         var expectedUsers = new List<User>
         {
-            new User { Id = 1, Name = "John Doe", Username = "johndoe", Email = "john@example.com" },
-            new User { Id = 2, Name = "Jane Smith", Username = "janesmith", Email = "jane@example.com" }
+            new User
+            {
+                Id = 1,
+                Name = "John Doe",
+                Username = "johndoe",
+                Email = "john@example.com",
+            },
+            new User
+            {
+                Id = 2,
+                Name = "Jane Smith",
+                Username = "janesmith",
+                Email = "jane@example.com",
+            },
         };
 
-        mockUserService.Setup(s => s.GetUsersAsync())
-            .ReturnsAsync(expectedUsers);
+        mockUserService.Setup(s => s.GetUsersAsync()).ReturnsAsync(expectedUsers);
 
         var useCase = new GetUsersUseCase(mockUserService.Object);
 
@@ -39,8 +50,7 @@ public class GetUsersUseCaseTests
     {
         // Arrange
         var mockUserService = new Mock<IUserService>();
-        mockUserService.Setup(s => s.GetUsersAsync())
-            .ReturnsAsync(Enumerable.Empty<User>());
+        mockUserService.Setup(s => s.GetUsersAsync()).ReturnsAsync(Enumerable.Empty<User>());
 
         var useCase = new GetUsersUseCase(mockUserService.Object);
 
@@ -58,18 +68,18 @@ public class GetUsersUseCaseTests
     {
         // Arrange
         var mockUserService = new Mock<IUserService>();
-        var largeUserList = Enumerable.Range(1, 1000)
+        var largeUserList = Enumerable
+            .Range(1, 1000)
             .Select(i => new User
             {
                 Id = i,
                 Name = $"User {i}",
                 Username = $"user{i}",
-                Email = $"user{i}@example.com"
+                Email = $"user{i}@example.com",
             })
             .ToList();
 
-        mockUserService.Setup(s => s.GetUsersAsync())
-            .ReturnsAsync(largeUserList);
+        mockUserService.Setup(s => s.GetUsersAsync()).ReturnsAsync(largeUserList);
 
         var useCase = new GetUsersUseCase(mockUserService.Object);
 
@@ -87,8 +97,7 @@ public class GetUsersUseCaseTests
     {
         // Arrange
         var mockUserService = new Mock<IUserService>();
-        mockUserService.Setup(s => s.GetUsersAsync())
-            .ThrowsAsync(new Exception("Service error"));
+        mockUserService.Setup(s => s.GetUsersAsync()).ThrowsAsync(new Exception("Service error"));
 
         var useCase = new GetUsersUseCase(mockUserService.Object);
 
@@ -96,6 +105,4 @@ public class GetUsersUseCaseTests
         await Assert.ThrowsAsync<Exception>(() => useCase.ExecuteAsync());
         mockUserService.Verify(s => s.GetUsersAsync(), Times.Once);
     }
-
 }
-

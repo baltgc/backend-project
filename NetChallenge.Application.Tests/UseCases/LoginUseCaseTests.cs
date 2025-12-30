@@ -17,10 +17,11 @@ public class LoginUseCaseTests
         var expectedResponse = new LoginResponse
         {
             Token = "test-token-12345",
-            ExpiresAt = DateTime.UtcNow.AddMinutes(60)
+            ExpiresAt = DateTime.UtcNow.AddMinutes(60),
         };
 
-        mockAuthService.Setup(s => s.AuthenticateAsync(username, password))
+        mockAuthService
+            .Setup(s => s.AuthenticateAsync(username, password))
             .ReturnsAsync(expectedResponse);
 
         var useCase = new LoginUseCase(mockAuthService.Object);
@@ -43,7 +44,8 @@ public class LoginUseCaseTests
         var username = "invaliduser";
         var password = "invalidpass";
 
-        mockAuthService.Setup(s => s.AuthenticateAsync(username, password))
+        mockAuthService
+            .Setup(s => s.AuthenticateAsync(username, password))
             .ReturnsAsync((LoginResponse?)null);
 
         var useCase = new LoginUseCase(mockAuthService.Object);
@@ -65,7 +67,10 @@ public class LoginUseCaseTests
 
         // Act & Assert
         await Assert.ThrowsAsync<ArgumentException>(() => useCase.ExecuteAsync("", "password"));
-        mockAuthService.Verify(s => s.AuthenticateAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+        mockAuthService.Verify(
+            s => s.AuthenticateAsync(It.IsAny<string>(), It.IsAny<string>()),
+            Times.Never
+        );
     }
 
     [Fact]
@@ -77,7 +82,10 @@ public class LoginUseCaseTests
 
         // Act & Assert
         await Assert.ThrowsAsync<ArgumentException>(() => useCase.ExecuteAsync("username", ""));
-        mockAuthService.Verify(s => s.AuthenticateAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+        mockAuthService.Verify(
+            s => s.AuthenticateAsync(It.IsAny<string>(), It.IsAny<string>()),
+            Times.Never
+        );
     }
 
     [Fact]
@@ -89,7 +97,10 @@ public class LoginUseCaseTests
 
         // Act & Assert
         await Assert.ThrowsAsync<ArgumentException>(() => useCase.ExecuteAsync("   ", "password"));
-        mockAuthService.Verify(s => s.AuthenticateAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+        mockAuthService.Verify(
+            s => s.AuthenticateAsync(It.IsAny<string>(), It.IsAny<string>()),
+            Times.Never
+        );
     }
 
     [Fact]
@@ -101,7 +112,10 @@ public class LoginUseCaseTests
 
         // Act & Assert
         await Assert.ThrowsAsync<ArgumentException>(() => useCase.ExecuteAsync("username", "   "));
-        mockAuthService.Verify(s => s.AuthenticateAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+        mockAuthService.Verify(
+            s => s.AuthenticateAsync(It.IsAny<string>(), It.IsAny<string>()),
+            Times.Never
+        );
     }
 
     [Fact]
@@ -113,7 +127,10 @@ public class LoginUseCaseTests
 
         // Act & Assert
         await Assert.ThrowsAsync<ArgumentException>(() => useCase.ExecuteAsync(null!, "password"));
-        mockAuthService.Verify(s => s.AuthenticateAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+        mockAuthService.Verify(
+            s => s.AuthenticateAsync(It.IsAny<string>(), It.IsAny<string>()),
+            Times.Never
+        );
     }
 
     [Fact]
@@ -125,7 +142,10 @@ public class LoginUseCaseTests
 
         // Act & Assert
         await Assert.ThrowsAsync<ArgumentException>(() => useCase.ExecuteAsync("username", null!));
-        mockAuthService.Verify(s => s.AuthenticateAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+        mockAuthService.Verify(
+            s => s.AuthenticateAsync(It.IsAny<string>(), It.IsAny<string>()),
+            Times.Never
+        );
     }
 
     [Fact]
@@ -137,10 +157,11 @@ public class LoginUseCaseTests
         var expectedResponse = new LoginResponse
         {
             Token = "test-token",
-            ExpiresAt = DateTime.UtcNow.AddMinutes(60)
+            ExpiresAt = DateTime.UtcNow.AddMinutes(60),
         };
 
-        mockAuthService.Setup(s => s.AuthenticateAsync(longUsername, "password"))
+        mockAuthService
+            .Setup(s => s.AuthenticateAsync(longUsername, "password"))
             .ReturnsAsync(expectedResponse);
 
         var useCase = new LoginUseCase(mockAuthService.Object);
@@ -162,10 +183,11 @@ public class LoginUseCaseTests
         var expectedResponse = new LoginResponse
         {
             Token = "test-token",
-            ExpiresAt = DateTime.UtcNow.AddMinutes(60)
+            ExpiresAt = DateTime.UtcNow.AddMinutes(60),
         };
 
-        mockAuthService.Setup(s => s.AuthenticateAsync("username", longPassword))
+        mockAuthService
+            .Setup(s => s.AuthenticateAsync("username", longPassword))
             .ReturnsAsync(expectedResponse);
 
         var useCase = new LoginUseCase(mockAuthService.Object);
@@ -183,7 +205,8 @@ public class LoginUseCaseTests
     {
         // Arrange
         var mockAuthService = new Mock<IAuthService>();
-        mockAuthService.Setup(s => s.AuthenticateAsync("username", "password"))
+        mockAuthService
+            .Setup(s => s.AuthenticateAsync("username", "password"))
             .ThrowsAsync(new Exception("Service error"));
 
         var useCase = new LoginUseCase(mockAuthService.Object);
@@ -193,4 +216,3 @@ public class LoginUseCaseTests
         mockAuthService.Verify(s => s.AuthenticateAsync("username", "password"), Times.Once);
     }
 }
-

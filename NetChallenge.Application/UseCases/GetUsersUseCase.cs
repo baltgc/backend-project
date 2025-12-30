@@ -24,8 +24,7 @@ public class GetUsersUseCase
             Username = u.Username,
             Email = u.Email,
             Phone = u.Phone,
-            Website = u.Website
+            Website = u.Website,
         });
     }
 }
-

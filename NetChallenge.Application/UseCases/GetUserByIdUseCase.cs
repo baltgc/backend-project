@@ -29,8 +29,7 @@ public class GetUserByIdUseCase
             Username = user.Username,
             Email = user.Email,
             Phone = user.Phone,
-            Website = user.Website
+            Website = user.Website,
         };
     }
 }
-

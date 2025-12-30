@@ -29,7 +29,7 @@ public class UserService : IUserService
             Username = u.Username,
             Email = u.Email,
             Phone = u.Phone,
-            Website = u.Website
+            Website = u.Website,
         });
     }
 
@@ -49,8 +49,7 @@ public class UserService : IUserService
             Username = user.Username,
             Email = user.Email,
             Phone = user.Phone,
-            Website = user.Website
+            Website = user.Website,
         };
     }
 }
-

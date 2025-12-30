@@ -22,4 +22,3 @@ public class LoginUseCase
         return await _authService.AuthenticateAsync(username, password);
     }
 }
-

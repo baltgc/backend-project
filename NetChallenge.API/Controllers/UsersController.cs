@@ -13,9 +13,7 @@ public class UsersController : ControllerBase
     private readonly GetUsersUseCase _getUsersUseCase;
     private readonly GetUserByIdUseCase _getUserByIdUseCase;
 
-    public UsersController(
-        GetUsersUseCase getUsersUseCase,
-        GetUserByIdUseCase getUserByIdUseCase)
+    public UsersController(GetUsersUseCase getUsersUseCase, GetUserByIdUseCase getUserByIdUseCase)
     {
         _getUsersUseCase = getUsersUseCase;
         _getUserByIdUseCase = getUserByIdUseCase;
@@ -44,4 +42,3 @@ public class UsersController : ControllerBase
         return Ok(user);
     }
 }
-

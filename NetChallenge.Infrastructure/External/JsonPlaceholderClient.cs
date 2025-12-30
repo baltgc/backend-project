@@ -36,12 +36,8 @@ public class JsonPlaceholderClient
 
         var content = await response.Content.ReadAsStringAsync();
 
-        var options = new JsonSerializerOptions
-        {
-            PropertyNameCaseInsensitive = true
-        };
-        
+        var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+
         return JsonSerializer.Deserialize<T>(content, options);
     }
 }
-
