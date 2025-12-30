@@ -1,18 +1,44 @@
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using NetChallenge.API.Configuration;
 using NetChallenge.API.Middleware;
 using NetChallenge.Application.Interfaces;
 using NetChallenge.Application.UseCases;
 using NetChallenge.Infrastructure.External;
+using NetChallenge.Infrastructure.Persistence;
 using NetChallenge.Infrastructure.Services;
+using Polly;
+using Polly.Extensions.Http;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddHttpLogging(_ => { });
+
+builder.Services.AddProblemDetails(options =>
+{
+    options.CustomizeProblemDetails = ctx =>
+    {
+        var correlationId = CorrelationIdMiddleware.GetCorrelationId(ctx.HttpContext);
+        if (!string.IsNullOrWhiteSpace(correlationId))
+        {
+            ctx.ProblemDetails.Extensions["correlationId"] = correlationId;
+        }
+    };
+});
+
+// Configure EF Core (Postgres)
+var postgresConnectionString =
+    builder.Configuration.GetConnectionString("Postgres")
+    ?? throw new InvalidOperationException("Missing connection string: ConnectionStrings:Postgres");
+builder.Services.AddDbContext<AppDbContext>(options => options.UseNpgsql(postgresConnectionString));
+builder.Services.AddHealthChecks().AddDbContextCheck<AppDbContext>();
 
 // Configure JWT Settings
 var jwtSettings = new JwtSettings();
@@ -93,39 +119,76 @@ builder.Services.AddSwaggerGen(options =>
 var jsonPlaceholderBaseUrl =
     builder.Configuration["JsonPlaceholder:BaseUrl"] ?? "https://jsonplaceholder.typicode.com";
 
-builder.Services.AddHttpClient();
-builder.Services.AddScoped<JsonPlaceholderClient>(sp =>
-{
-    var httpClientFactory = sp.GetRequiredService<IHttpClientFactory>();
-    var httpClient = httpClientFactory.CreateClient();
-    return new JsonPlaceholderClient(httpClient, jsonPlaceholderBaseUrl);
-});
+builder
+    .Services.AddHttpClient<JsonPlaceholderClient>(client =>
+    {
+        client.BaseAddress = new Uri(jsonPlaceholderBaseUrl);
+    })
+    .AddPolicyHandler(
+        HttpPolicyExtensions
+            .HandleTransientHttpError()
+            .OrResult(msg => (int)msg.StatusCode == StatusCodes.Status429TooManyRequests)
+            .WaitAndRetryAsync(
+                retryCount: 3,
+                sleepDurationProvider: attempt => TimeSpan.FromMilliseconds(200 * attempt)
+            )
+    )
+    .AddPolicyHandler(
+        HttpPolicyExtensions
+            .HandleTransientHttpError()
+            .CircuitBreakerAsync(
+                handledEventsAllowedBeforeBreaking: 5,
+                durationOfBreak: TimeSpan.FromSeconds(10)
+            )
+    )
+    .AddPolicyHandler(Policy.TimeoutAsync<HttpResponseMessage>(TimeSpan.FromSeconds(3)));
 
 // Register Application Services
-builder.Services.AddScoped<IUserService, UserService>();
-builder.Services.AddScoped<IAuthService>(sp =>
-{
-    var validUsername = builder.Configuration["Authentication:ValidUsername"] ?? "admin";
-    var validPassword = builder.Configuration["Authentication:ValidPassword"] ?? "admin123";
-
-    return new AuthService(
-        jwtSettings.SecretKey,
-        jwtSettings.Issuer,
-        jwtSettings.Audience,
-        jwtSettings.ExpirationMinutes,
-        validUsername,
-        validPassword
-    );
-});
+builder.Services.AddScoped<IUserService>(sp => new UserService(
+    sp.GetRequiredService<JsonPlaceholderClient>(),
+    sp.GetRequiredService<AppDbContext>(),
+    usersTtlSeconds: builder.Configuration.GetValue("Cache:UsersTtlSeconds", 60)
+));
+builder.Services.AddScoped<IAuthService>(sp => new AuthService(
+    secretKey: jwtSettings.SecretKey,
+    issuer: jwtSettings.Issuer,
+    audience: jwtSettings.Audience,
+    accessTokenExpirationMinutes: jwtSettings.ExpirationMinutes,
+    refreshTokenExpirationDays: builder.Configuration.GetValue("Jwt:RefreshTokenExpirationDays", 7),
+    db: sp.GetRequiredService<AppDbContext>(),
+    httpContextAccessor: sp.GetRequiredService<IHttpContextAccessor>()
+));
 
 // Register Use Cases
 builder.Services.AddScoped<GetUsersUseCase>();
 builder.Services.AddScoped<GetUserByIdUseCase>();
 builder.Services.AddScoped<LoginUseCase>();
+builder.Services.AddScoped<RefreshTokenUseCase>();
+builder.Services.AddScoped<LogoutUseCase>();
 
 var app = builder.Build();
 
-// Global exception handler (first in pipeline)
+// Development-only: auto-migrate and seed an admin user for convenience.
+if (app.Environment.IsDevelopment())
+{
+    using var scope = app.Services.CreateScope();
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    await db.Database.MigrateAsync();
+
+    var logger = scope
+        .ServiceProvider.GetRequiredService<ILoggerFactory>()
+        .CreateLogger("DbSeeder");
+    var seedUsername = builder.Configuration["Authentication:ValidUsername"] ?? "admin";
+    var seedPassword = builder.Configuration["Authentication:ValidPassword"] ?? "admin123";
+    await DbSeeder.SeedAdminAsync(db, logger, seedUsername, seedPassword);
+}
+
+app.UseHttpLogging();
+
+// Correlation id (first in pipeline)
+app.UseMiddleware<CorrelationIdMiddleware>();
+
+// Global exception handler (early in pipeline)
 app.UseMiddleware<ExceptionHandlerMiddleware>();
 
 // Configure the HTTP request pipeline.
@@ -138,6 +201,10 @@ if (app.Environment.IsDevelopment())
         c.RoutePrefix = string.Empty; // Swagger UI at root
     });
 }
+else if (app.Environment.IsEnvironment("Testing"))
+{
+    // Keep the pipeline test-friendly (no HTTPS redirects, no swagger UI required).
+}
 else
 {
     app.UseHttpsRedirection();
@@ -146,6 +213,13 @@ else
 app.UseAuthentication();
 app.UseAuthorization();
 
+app.UseMiddleware<AuditMiddleware>();
+
+app.MapHealthChecks("/health");
+
 app.MapControllers();
 
 app.Run();
+
+// Required for WebApplicationFactory<T> in integration tests (top-level statements).
+public partial class Program { }

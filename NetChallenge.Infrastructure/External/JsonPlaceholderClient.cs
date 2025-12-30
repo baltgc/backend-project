@@ -5,36 +5,35 @@ namespace NetChallenge.Infrastructure.External;
 public class JsonPlaceholderClient
 {
     private readonly HttpClient _httpClient;
-    private readonly string _baseUrl;
 
-    public JsonPlaceholderClient(HttpClient httpClient, string baseUrl)
+    public JsonPlaceholderClient(HttpClient httpClient)
     {
         _httpClient = httpClient;
-        _baseUrl = baseUrl;
     }
 
     public async Task<List<JsonPlaceholderUserResponse>?> GetUsersAsync()
     {
-        var url = $"{_baseUrl}/users";
-        return await GetAsync<List<JsonPlaceholderUserResponse>>(url);
+        return await GetAsync<List<JsonPlaceholderUserResponse>>("users");
     }
 
     public async Task<JsonPlaceholderUserResponse?> GetUserByIdAsync(int id)
     {
-        var url = $"{_baseUrl}/users/{id}";
-        return await GetAsync<JsonPlaceholderUserResponse>(url);
+        return await GetAsync<JsonPlaceholderUserResponse>($"users/{id}");
     }
 
     private async Task<T?> GetAsync<T>(string url)
     {
         using var response = await _httpClient.GetAsync(url);
 
+        var content = await response.Content.ReadAsStringAsync();
+
         if (!response.IsSuccessStatusCode)
         {
-            return default;
+            throw new ExternalServiceException(
+                message: $"JsonPlaceholder call failed with status {(int)response.StatusCode}.",
+                statusCode: (int)response.StatusCode
+            );
         }
-
-        var content = await response.Content.ReadAsStringAsync();
 
         var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
 

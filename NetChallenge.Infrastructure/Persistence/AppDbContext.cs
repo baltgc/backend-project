@@ -48,8 +48,8 @@ public class AppDbContext : DbContext
                 .OnDelete(DeleteBehavior.Cascade);
 
             b.HasOne(x => x.ReplacedByToken)
-                .WithOne()
-                .HasForeignKey<RefreshToken>(x => x.ReplacedByTokenId)
+                .WithMany()
+                .HasForeignKey(x => x.ReplacedByTokenId)
                 .OnDelete(DeleteBehavior.SetNull);
         });
 

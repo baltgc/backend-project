@@ -6,5 +6,7 @@ public interface IAuthService
 {
     Task<LoginResponse?> AuthenticateAsync(string username, string password);
 
-    string GenerateToken(string username);
+    Task<LoginResponse?> RefreshAsync(string refreshToken);
+
+    Task RevokeAsync(string refreshToken);
 }

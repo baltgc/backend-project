@@ -9,10 +9,18 @@ namespace NetChallenge.API.Controllers;
 public class AuthController : ControllerBase
 {
     private readonly LoginUseCase _loginUseCase;
+    private readonly RefreshTokenUseCase _refreshTokenUseCase;
+    private readonly LogoutUseCase _logoutUseCase;
 
-    public AuthController(LoginUseCase loginUseCase)
+    public AuthController(
+        LoginUseCase loginUseCase,
+        RefreshTokenUseCase refreshTokenUseCase,
+        LogoutUseCase logoutUseCase
+    )
     {
         _loginUseCase = loginUseCase;
+        _refreshTokenUseCase = refreshTokenUseCase;
+        _logoutUseCase = logoutUseCase;
     }
 
     [HttpPost("login")]
@@ -20,20 +28,36 @@ public class AuthController : ControllerBase
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<ActionResult<LoginResponse>> Login([FromBody] LoginRequest request)
     {
-        try
-        {
-            var response = await _loginUseCase.ExecuteAsync(request.Username, request.Password);
+        var response = await _loginUseCase.ExecuteAsync(request.Username, request.Password);
 
-            if (response == null)
-            {
-                return Unauthorized(new { message = "Invalid credentials" });
-            }
-
-            return Ok(response);
-        }
-        catch (ArgumentException ex)
+        if (response == null)
         {
-            return BadRequest(new { message = ex.Message });
+            return Unauthorized();
         }
+
+        return Ok(response);
+    }
+
+    [HttpPost("refresh")]
+    [ProducesResponseType(typeof(LoginResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<ActionResult<LoginResponse>> Refresh([FromBody] RefreshTokenRequest request)
+    {
+        var response = await _refreshTokenUseCase.ExecuteAsync(request.RefreshToken);
+
+        if (response == null)
+        {
+            return Unauthorized();
+        }
+
+        return Ok(response);
+    }
+
+    [HttpPost("logout")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    public async Task<IActionResult> Logout([FromBody] RefreshTokenRequest request)
+    {
+        await _logoutUseCase.ExecuteAsync(request.RefreshToken);
+        return NoContent();
     }
 }

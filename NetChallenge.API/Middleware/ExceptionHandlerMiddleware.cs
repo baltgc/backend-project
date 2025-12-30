@@ -1,5 +1,7 @@
 using System.Net;
 using System.Text.Json;
+using Microsoft.AspNetCore.Mvc;
+using NetChallenge.Infrastructure.External;
 
 namespace NetChallenge.API.Middleware;
 
@@ -32,12 +34,34 @@ public class ExceptionHandlerMiddleware
 
     private static async Task HandleExceptionAsync(HttpContext context, Exception exception)
     {
-        context.Response.ContentType = "application/json";
-        context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
+        var (statusCode, title) = exception switch
+        {
+            ArgumentException => (StatusCodes.Status400BadRequest, "Bad Request"),
+            UnauthorizedAccessException => (StatusCodes.Status401Unauthorized, "Unauthorized"),
+            KeyNotFoundException => (StatusCodes.Status404NotFound, "Not Found"),
+            ExternalServiceException => (StatusCodes.Status503ServiceUnavailable, "Upstream Service Failure"),
+            HttpRequestException => (StatusCodes.Status503ServiceUnavailable, "Upstream Service Failure"),
+            _ => (StatusCodes.Status500InternalServerError, "Internal Server Error"),
+        };
 
-        var response = new { message = "An unexpected error occurred", detail = exception.Message };
+        context.Response.ContentType = "application/problem+json";
+        context.Response.StatusCode = statusCode;
 
-        var json = JsonSerializer.Serialize(response);
+        var correlationId = CorrelationIdMiddleware.GetCorrelationId(context) ?? context.TraceIdentifier;
+
+        var problem = new ProblemDetails
+        {
+            Status = statusCode,
+            Title = title,
+            Detail = context.RequestServices.GetRequiredService<IHostEnvironment>().IsDevelopment()
+                ? exception.Message
+                : null,
+            Instance = context.Request.Path,
+        };
+
+        problem.Extensions["correlationId"] = correlationId;
+
+        var json = JsonSerializer.Serialize(problem);
         await context.Response.WriteAsync(json);
     }
 }
