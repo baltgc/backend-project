@@ -46,3 +46,4 @@ public static class DbSeeder
         logger.LogInformation("Seeded admin user '{Username}'.", username);
     }
 }
+

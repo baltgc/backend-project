@@ -1,6 +1,6 @@
 # NetChallenge API
 
-A REST API built with .NET 8 that consumes data from the JSONPlaceholder external API, featuring JWT authentication, Clean Architecture, and comprehensive documentation.
+A REST API built with **.NET 9** that consumes data from the **JSONPlaceholder** external API, featuring **JWT auth + refresh tokens**, **DB-backed cache**, and production-grade middleware (correlation IDs, ProblemDetails, auditing).
 
 ## Quick Start
 
@@ -24,20 +24,51 @@ Swagger UI: http://localhost:8080
 
 This project implements a secure REST API that:
 - Consumes user data from [JSONPlaceholder API](https://jsonplaceholder.typicode.com/)
-- Implements JWT (JSON Web Token) authentication
+- Implements JWT (JSON Web Token) authentication **with refresh-token rotation**
 - Follows Clean Architecture principles
 - Applies SOLID principles throughout the codebase
 
+## Features
+
+- **JWT auth + refresh tokens**
+  - Access tokens for protected endpoints
+  - Refresh token rotation + revocation (`/api/auth/refresh`, `/api/auth/logout`)
+- **Postgres persistence (EF Core)**
+  - `user_accounts`, `refresh_tokens`, `cache_entries`, `audit_events`
+  - Dev-only auto-migrate + seed admin user on startup
+- **DB-backed cache for external API calls**
+  - Persists JSON payloads in `cache_entries`
+  - TTL configurable via `Cache:UsersTtlSeconds`
+- **Correlation IDs**
+  - Request/response header: `X-Correlation-ID`
+  - Added to logs and returned in ProblemDetails
+- **RFC7807 ProblemDetails error responses**
+  - `application/problem+json`
+  - Includes `correlationId` extension
+- **Audit trail**
+  - Persists one row per request in `audit_events` (best-effort; never breaks the request)
+- **Resilience for JSONPlaceholder**
+  - HttpClient policies: retry, timeout, circuit breaker
+- **Health checks**
+  - `GET /health` (includes DB check)
+- **Test coverage**
+  - Unit tests (`NetChallenge.Application.Tests`)
+  - API integration tests (`NetChallenge.API.Tests`) using `WebApplicationFactory` + in-memory SQLite + fake JsonPlaceholder
+
 ## Technologies Used
 
-- **.NET 8** - Framework
+- **.NET 9** - Framework
 - **C#** - Programming language
 - **JWT Authentication** - Security
+- **Refresh Tokens** - Session continuation + rotation
 - **Swagger/OpenAPI** - API documentation
 - **Docker** - Containerization
+- **PostgreSQL** - Database
+- **EF Core** - ORM
 - **xUnit** - Testing framework
 - **Moq** - Mocking library
 - **HttpClient** - External API consumption
+- **Polly** - Resilience policies (retry/timeout/circuit breaker)
 
 ## Project Structure (Clean Architecture)
 
@@ -48,11 +79,12 @@ NetChallenge/
 ├── NetChallenge.Domain/        # Business entities
 ├── NetChallenge.Infrastructure/# External services, repositories
 └── NetChallenge.Application.Tests/ # Unit tests
+└── NetChallenge.API.Tests/     # API integration tests
 ```
 
 ## Prerequisites
 
-- [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0)
+- [.NET 9 SDK](https://dotnet.microsoft.com/download/dotnet/9.0)
 - [Docker](https://www.docker.com/get-started) (optional, for containerized execution)
 
 ## Installation & Running
@@ -110,7 +142,7 @@ When running the application, Swagger UI is available at:
 ### Authentication
 
 #### POST /api/auth/login
-Generate a JWT token.
+Generate a JWT access token and refresh token.
 
 **Request:**
 ```json
@@ -124,9 +156,43 @@ Generate a JWT token.
 ```json
 {
   "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "expiresAt": "2024-01-01T12:00:00Z"
+  "expiresAt": "2024-01-01T12:00:00Z",
+  "refreshToken": "base64url...",
+  "refreshTokenExpiresAt": "2024-01-08T12:00:00Z"
 }
 ```
+
+#### POST /api/auth/refresh
+Rotate the refresh token and return a new access token.
+
+**Request:**
+```json
+{
+  "refreshToken": "base64url..."
+}
+```
+
+**Response (200 OK):**
+```json
+{
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "expiresAt": "2024-01-01T12:00:00Z",
+  "refreshToken": "base64url...",
+  "refreshTokenExpiresAt": "2024-01-08T12:00:00Z"
+}
+```
+
+#### POST /api/auth/logout
+Revoke a refresh token (best-effort, always returns 204).
+
+**Request:**
+```json
+{
+  "refreshToken": "base64url..."
+}
+```
+
+**Response:** `204 No Content`
 
 ### Users (Protected - Requires JWT Token)
 
@@ -179,6 +245,9 @@ Authorization: Bearer <your-token>
 | 400 | Bad Request - Invalid input |
 | 401 | Unauthorized - Invalid credentials or missing/invalid token |
 | 404 | Not Found - User not found |
+| 503 | Upstream Service Failure - JSONPlaceholder is unavailable |
+
+All errors are returned as **ProblemDetails** (`application/problem+json`) and include a `correlationId` field.
 
 ## Test Credentials
 
@@ -231,11 +300,18 @@ Configuration is managed through `appsettings.json`:
 
 ```json
 {
+  "ConnectionStrings": {
+    "Postgres": "Host=localhost;Port=5432;Database=netchallenge;Username=netchallenge;Password=netchallenge"
+  },
+  "Cache": {
+    "UsersTtlSeconds": 60
+  },
   "Jwt": {
     "SecretKey": "YourSuperSecretKeyThatShouldBeAtLeast32CharactersLong!",
     "Issuer": "NetChallengeAPI",
     "Audience": "NetChallengeAPI",
-    "ExpirationMinutes": 60
+    "ExpirationMinutes": 60,
+    "RefreshTokenExpirationDays": 7
   },
   "Authentication": {
     "ValidUsername": "admin",
@@ -257,15 +333,19 @@ For production, override settings using environment variables:
 | `Jwt__Issuer` | Token issuer |
 | `Jwt__Audience` | Token audience |
 | `Jwt__ExpirationMinutes` | Token validity in minutes |
+| `Jwt__RefreshTokenExpirationDays` | Refresh token validity in days |
 | `Authentication__ValidUsername` | Valid username for login |
 | `Authentication__ValidPassword` | Valid password for login |
+| `ConnectionStrings__Postgres` | Postgres connection string |
+| `Cache__UsersTtlSeconds` | Cache TTL for users (seconds) |
 
 ## Middleware
 
-The API includes a **Global Exception Handler** middleware that:
-- Catches all unhandled exceptions
-- Logs errors using the built-in `ILogger`
-- Returns a clean JSON response instead of exposing stack traces
+The API includes:
+
+- **CorrelationIdMiddleware**: sets `X-Correlation-ID` and adds it to logging scope
+- **ExceptionHandlerMiddleware**: returns RFC7807 ProblemDetails (`application/problem+json`) with `correlationId`
+- **AuditMiddleware**: writes one `audit_events` row per request (best-effort)
 
 ## Architecture & SOLID Principles
 
