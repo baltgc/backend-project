@@ -6,8 +6,22 @@ using NetChallenge.Application.DTOs;
 
 namespace NetChallenge.API.Tests;
 
-public class UsersEndpointTests(CustomWebApplicationFactory factory) : IClassFixture<CustomWebApplicationFactory>
+public class UsersEndpointTests(CustomWebApplicationFactory factory)
+    : IClassFixture<CustomWebApplicationFactory>
 {
+    private static async Task EnsureSuccessOrDumpAsync(HttpResponseMessage response)
+    {
+        if (response.IsSuccessStatusCode)
+        {
+            return;
+        }
+
+        var body = await response.Content.ReadAsStringAsync();
+        throw new Xunit.Sdk.XunitException(
+            $"HTTP {(int)response.StatusCode} {response.StatusCode}. Body: {body}"
+        );
+    }
+
     [Fact]
     public async Task Users_WithoutAuth_Is401_AndStillHasCorrelationHeader()
     {
@@ -29,7 +43,7 @@ public class UsersEndpointTests(CustomWebApplicationFactory factory) : IClassFix
             "/api/auth/login",
             new LoginRequest { Username = "admin", Password = "admin123" }
         );
-        login.EnsureSuccessStatusCode();
+        await EnsureSuccessOrDumpAsync(login);
         var loginBody = await login.Content.ReadFromJsonAsync<LoginResponse>();
         Assert.NotNull(loginBody);
 
@@ -38,7 +52,7 @@ public class UsersEndpointTests(CustomWebApplicationFactory factory) : IClassFix
         // First call: should hit fake upstream once and cache in DB.
         var before = factory.JsonPlaceholderHandler.CallCount;
         var r1 = await client.GetAsync("/api/users");
-        r1.EnsureSuccessStatusCode();
+        await EnsureSuccessOrDumpAsync(r1);
         Assert.True(r1.Headers.Contains(CorrelationIdMiddleware.HeaderName));
 
         var users1 = await r1.Content.ReadFromJsonAsync<List<UserDto>>();
@@ -53,5 +67,3 @@ public class UsersEndpointTests(CustomWebApplicationFactory factory) : IClassFix
         Assert.Equal(before + 1, after);
     }
 }
-
-

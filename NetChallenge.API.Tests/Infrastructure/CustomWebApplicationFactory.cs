@@ -1,7 +1,11 @@
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Options;
 using NetChallenge.Domain.Entities;
 using NetChallenge.Infrastructure.External;
 using NetChallenge.Infrastructure.Persistence;
@@ -12,6 +16,8 @@ namespace NetChallenge.API.Tests.Infrastructure;
 public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
 {
     public FakeJsonPlaceholderHandler JsonPlaceholderHandler { get; }
+    private SqliteConnection? _sqliteConnection;
+    private ServiceProvider? _sqliteEfServices;
 
     public CustomWebApplicationFactory()
     {
@@ -56,11 +62,32 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
             // Replace AppDbContext with an in-memory SQLite DB.
             services.RemoveAll<DbContextOptions<AppDbContext>>();
             services.RemoveAll<AppDbContext>();
+            services.RemoveAll<IConfigureOptions<DbContextOptions<AppDbContext>>>();
+            services.RemoveAll<IPostConfigureOptions<DbContextOptions<AppDbContext>>>();
+            services.RemoveAll(
+                typeof(Microsoft.EntityFrameworkCore.Infrastructure.IDbContextOptionsConfiguration<AppDbContext>)
+            );
 
-            services.AddDbContext<AppDbContext>(options =>
-            {
-                options.UseSqlite("DataSource=:memory:");
-            });
+            // Program.cs registers Npgsql provider services; remove them so we only have a single EF provider.
+            services.RemoveAll<IDatabaseProvider>();
+
+            // Keep a single open connection for the lifetime of the factory;
+            // otherwise each DbContext gets its own empty in-memory DB.
+            _sqliteConnection = new SqliteConnection("DataSource=:memory:");
+            _sqliteConnection.Open();
+
+            services.AddSingleton(_sqliteConnection);
+            services.AddDbContext<AppDbContext>(
+                (sp, options) =>
+                {
+                    var connection = sp.GetRequiredService<SqliteConnection>();
+                    options.UseSqlite(connection);
+                    _sqliteEfServices ??= new ServiceCollection()
+                        .AddEntityFrameworkSqlite()
+                        .BuildServiceProvider();
+                    options.UseInternalServiceProvider(_sqliteEfServices);
+                }
+            );
 
             // Ensure the app uses our deterministic fake JsonPlaceholder client (no network).
             services.RemoveAll<JsonPlaceholderClient>();
@@ -78,11 +105,24 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
             using var scope = sp.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
-            db.Database.OpenConnection();
             db.Database.EnsureCreated();
 
             SeedTestUser(db);
         });
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        base.Dispose(disposing);
+
+        if (disposing)
+        {
+            _sqliteConnection?.Dispose();
+            _sqliteConnection = null;
+
+            _sqliteEfServices?.Dispose();
+            _sqliteEfServices = null;
+        }
     }
 
     private static void SeedTestUser(AppDbContext db)
@@ -110,5 +150,3 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
         db.SaveChanges();
     }
 }
-
-

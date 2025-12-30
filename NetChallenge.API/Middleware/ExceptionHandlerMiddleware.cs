@@ -39,23 +39,34 @@ public class ExceptionHandlerMiddleware
             ArgumentException => (StatusCodes.Status400BadRequest, "Bad Request"),
             UnauthorizedAccessException => (StatusCodes.Status401Unauthorized, "Unauthorized"),
             KeyNotFoundException => (StatusCodes.Status404NotFound, "Not Found"),
-            ExternalServiceException => (StatusCodes.Status503ServiceUnavailable, "Upstream Service Failure"),
-            HttpRequestException => (StatusCodes.Status503ServiceUnavailable, "Upstream Service Failure"),
+            ExternalServiceException => (
+                StatusCodes.Status503ServiceUnavailable,
+                "Upstream Service Failure"
+            ),
+            HttpRequestException => (
+                StatusCodes.Status503ServiceUnavailable,
+                "Upstream Service Failure"
+            ),
             _ => (StatusCodes.Status500InternalServerError, "Internal Server Error"),
         };
 
         context.Response.ContentType = "application/problem+json";
         context.Response.StatusCode = statusCode;
 
-        var correlationId = CorrelationIdMiddleware.GetCorrelationId(context) ?? context.TraceIdentifier;
+        var correlationId =
+            CorrelationIdMiddleware.GetCorrelationId(context) ?? context.TraceIdentifier;
 
         var problem = new ProblemDetails
         {
             Status = statusCode,
             Title = title,
-            Detail = context.RequestServices.GetRequiredService<IHostEnvironment>().IsDevelopment()
-                ? exception.Message
-                : null,
+            Detail =
+                context.RequestServices.GetRequiredService<IHostEnvironment>().IsDevelopment()
+                || context
+                    .RequestServices.GetRequiredService<IHostEnvironment>()
+                    .IsEnvironment("Testing")
+                    ? exception.Message
+                    : null,
             Instance = context.Request.Path,
         };
 

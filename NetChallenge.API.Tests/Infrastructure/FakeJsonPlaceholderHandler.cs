@@ -3,7 +3,7 @@ using System.Text;
 
 namespace NetChallenge.API.Tests.Infrastructure;
 
-internal sealed class FakeJsonPlaceholderHandler : HttpMessageHandler
+public sealed class FakeJsonPlaceholderHandler : HttpMessageHandler
 {
     private readonly Func<HttpRequestMessage, HttpResponseMessage> _responder;
 

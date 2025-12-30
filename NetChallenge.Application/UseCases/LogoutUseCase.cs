@@ -21,5 +21,3 @@ public class LogoutUseCase
         return _authService.RevokeAsync(refreshToken);
     }
 }
-
-

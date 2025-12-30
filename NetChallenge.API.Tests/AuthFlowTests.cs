@@ -5,8 +5,22 @@ using NetChallenge.Application.DTOs;
 
 namespace NetChallenge.API.Tests;
 
-public class AuthFlowTests(CustomWebApplicationFactory factory) : IClassFixture<CustomWebApplicationFactory>
+public class AuthFlowTests(CustomWebApplicationFactory factory)
+    : IClassFixture<CustomWebApplicationFactory>
 {
+    private static async Task EnsureSuccessOrDumpAsync(HttpResponseMessage response)
+    {
+        if (response.IsSuccessStatusCode)
+        {
+            return;
+        }
+
+        var body = await response.Content.ReadAsStringAsync();
+        throw new Xunit.Sdk.XunitException(
+            $"HTTP {(int)response.StatusCode} {response.StatusCode}. Body: {body}"
+        );
+    }
+
     [Fact]
     public async Task Login_ReturnsAccessTokenAndRefreshToken()
     {
@@ -17,7 +31,7 @@ public class AuthFlowTests(CustomWebApplicationFactory factory) : IClassFixture<
             new LoginRequest { Username = "admin", Password = "admin123" }
         );
 
-        response.EnsureSuccessStatusCode();
+        await EnsureSuccessOrDumpAsync(response);
 
         var body = await response.Content.ReadFromJsonAsync<LoginResponse>();
         Assert.NotNull(body);
@@ -32,11 +46,12 @@ public class AuthFlowTests(CustomWebApplicationFactory factory) : IClassFixture<
     {
         using var client = factory.CreateClient();
 
-        var loginResponse = await (await client.PostAsJsonAsync(
+        var loginResponse = await (
+            await client.PostAsJsonAsync(
                 "/api/auth/login",
                 new LoginRequest { Username = "admin", Password = "admin123" }
-            ))
-            .Content.ReadFromJsonAsync<LoginResponse>();
+            )
+        ).Content.ReadFromJsonAsync<LoginResponse>();
 
         Assert.NotNull(loginResponse);
 
@@ -61,5 +76,3 @@ public class AuthFlowTests(CustomWebApplicationFactory factory) : IClassFixture<
         Assert.Equal(HttpStatusCode.Unauthorized, refreshOldAgain.StatusCode);
     }
 }
-
-
